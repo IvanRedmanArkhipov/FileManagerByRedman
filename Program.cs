@@ -11,18 +11,18 @@ namespace FileManagerByRedman
     {
         public static void WriteLine(string message)
         {
-            using (StreamWriter sw = new StreamWriter(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\random_name_exception.txt", true))
-            {
-                sw.WriteLine(String.Format("{0,-23} {1}", DateTime.Now.ToString() + ":", message));
-            }
+            using StreamWriter sw = new(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\random_name_exception.txt", true);
+            sw.WriteLine(String.Format("{0,-23} {1}", DateTime.Now.ToString() + ":", message));
         }
     }
     class Program
     {
         static void Main(string[] args)
         {
+            var errorMessege = "";
+            var error = 0;
             var list = 1;
-            var dsk = 0;
+            var dsk = 1;
             var exit = 0;
             var copyDir = "";
             var pasteDir = "";
@@ -55,6 +55,8 @@ namespace FileManagerByRedman
                     }
                     catch (Exception e)
                     {
+                        error = 1;
+                        errorMessege = e.Message;
                         Logger.WriteLine(e.Message);
 
                         dir = @"C:\";
@@ -120,6 +122,8 @@ namespace FileManagerByRedman
                     }
                     catch (Exception e)
                     {
+                        error = 1;
+                        errorMessege = e.Message;
                         Logger.WriteLine(e.Message);
 
                         dir = @"C:\";
@@ -158,6 +162,16 @@ namespace FileManagerByRedman
                 for (int i = 0; i < Console.BufferWidth; i++)
                 {
                     Console.SetCursorPosition(i, Convert.ToInt32(ConfigurationManager.AppSettings["elmnts"]) + 6);
+                    Console.WriteLine('-');
+                }
+                if (error == 1)
+                {
+                    Console.WriteLine("Ошибка: " + errorMessege);
+                    error = 0;
+                }
+                for (int i = 0; i < Console.BufferWidth; i++)
+                {
+                    Console.SetCursorPosition(i, Convert.ToInt32(ConfigurationManager.AppSettings["elmnts"]) + 8);
                     Console.WriteLine('-');
                 }
                 //запрос у пользователя команды
@@ -203,7 +217,7 @@ namespace FileManagerByRedman
                         if (words[1] == "..") //перейти на директорию вниз
                         {
                             list = 1;
-                            if (dir.Length == 3)
+                            if (dir.Length <= 3)
                             {
                                 dsk = 1;
                             }
@@ -217,6 +231,25 @@ namespace FileManagerByRedman
                                 currentConfig.Save(ConfigurationSaveMode.Modified);
                                 ConfigurationManager.RefreshSection("appSettings");
                             }
+                        }
+                        if (words[1] == "to") //перейти к директории по пути
+                        {
+                            list = 1;
+                            RemoveAt(ref words, 0);
+                            RemoveAt(ref words, 0);
+                            string words1 = string.Join(" ", words);
+                            char[] words2 = words1.ToCharArray();
+                            if (words2[words2.Length - 1] == Convert.ToChar(@"\"))
+                            {
+                                dir = words1;
+                            }
+                            else
+                            {
+                                dir = words1 + @"\";
+                            }
+                            currentConfig.AppSettings.Settings["drctr"].Value = dir;
+                            currentConfig.Save(ConfigurationSaveMode.Modified);
+                            ConfigurationManager.RefreshSection("appSettings");
                         }
                         else //перейти в директорию находящуюся в текущей
                         {
@@ -260,9 +293,34 @@ namespace FileManagerByRedman
                     {
                         list = Convert.ToInt32(words[1]);
                     }
+                    else if (words[0] == "create") 
+                    {
+                        if (words[1] == "file")
+                        {
+                            RemoveAt(ref words, 0);
+                            RemoveAt(ref words, 0);
+                            string words1 = string.Join(" ", words);
+                            if (!File.Exists(dir + words1)) File.Create(dir + words1);
+                            StreamWriter file = new(dir + words1);
+                            file.Close();
+                        }
+                        if (words[1] == "dir")
+                        {
+                            RemoveAt(ref words, 0);
+                            RemoveAt(ref words, 0);
+                            string words1 = string.Join(" ", words);
+                            DirectoryInfo dirInfo96 = new(dir + words1);
+                            if (!dirInfo96.Exists)
+                            {
+                                dirInfo96.Create();
+                            }
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
+                    error = 1;
+                    errorMessege = e.Message;
                     Logger.WriteLine(e.Message);
                 }
                     Console.Clear();
